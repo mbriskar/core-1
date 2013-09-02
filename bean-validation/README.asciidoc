@@ -1,0 +1,56 @@
+== bean-validation
+:idprefix: id_ 
+
+This addon provides support of link:http://beanvalidation.org/1.1/(Bean Validation 1.1) features for dependent addons. 
+        
+=== Depends on
+
+[options="header"]
+|===
+|Addon |Exported |Optional
+
+|org.jboss.forge.furnace.container:cdi
+|yes
+|no
+
+|===
+
+== Setup
+
+This Addon requires the following installation steps.
+
+=== Add configuration to pom.xml 
+
+To use this addon, you must add it as a dependency in the *pom.xml* of your `forge-addon` classified artifact:
+
+[source,xml]
+----
+<dependency>
+   <groupId>org.jboss.forge.addon</groupId>
+   <artifactId>bean-validation</artifactId>
+   <classifier>forge-addon</classifier>
+   <version>${version}</version>
+</dependency>
+----
+
+== Features
+
+Method validation:: 
+	link::http://beanvalidation.org/1.1/spec/#d0e267(Method validation) is provided out-of-box for usage in addon methods.
++
+[source,java]
+----
+
+public class MyService {
+   public void sayHello(@NotNull String name) {
+   }
+}
+
+@Inject private MyService service;
+service.sayHello(null); // will throw ValidationException
+----
++
+[TIP] 
+====
+This feature only works with addons that use the container-cdi
+==== 
