@@ -7,12 +7,9 @@
 
 package org.jboss.addon.validation.ui;
 
-import java.util.Set;
-
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
 
-import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIValidationContext;
 import org.jboss.forge.addon.ui.input.InputComponent;
 import org.jboss.forge.addon.ui.validate.UIValidator;
@@ -26,9 +23,9 @@ public class UIValidationAdapter implements UIValidator
 {
    private final Validator validator;
    private final InputComponent<?, ?> input;
-   private final Class<UICommand> commandClass;
+   private final Class<?> commandClass;
 
-   public UIValidationAdapter(Validator validator, InputComponent<?, ?> input, Class<UICommand> commandClass)
+   public UIValidationAdapter(Validator validator, InputComponent<?, ?> input, Class<?> commandClass)
    {
       super();
       this.validator = validator;
@@ -39,8 +36,7 @@ public class UIValidationAdapter implements UIValidator
    @Override
    public void validate(UIValidationContext context)
    {
-      Set<ConstraintViolation<UICommand>> violations = validator.validateValue(commandClass, input.getName(), input);
-      for (ConstraintViolation<UICommand> violation : violations)
+      for (ConstraintViolation<?> violation : validator.validateValue(commandClass, input.getName(), input))
       {
          context.addValidationError(input, violation.getMessage());
       }

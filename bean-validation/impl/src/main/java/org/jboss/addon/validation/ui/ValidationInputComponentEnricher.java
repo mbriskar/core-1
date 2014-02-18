@@ -11,7 +11,6 @@ import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Inject;
 import javax.validation.Validator;
 
-import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.input.InputComponent;
 import org.jboss.forge.addon.ui.input.InputComponentInjectionEnricher;
 import org.jboss.forge.addon.ui.validate.UIValidator;
@@ -26,12 +25,11 @@ public class ValidationInputComponentEnricher implements InputComponentInjection
    @Inject
    private Validator validator;
 
-   @SuppressWarnings("unchecked")
    @Override
    public void enrich(InjectionPoint injectionPoint, InputComponent<?, ?> input)
    {
       Class<?> beanType = injectionPoint.getBean().getBeanClass();
-      UIValidationAdapter adapter = new UIValidationAdapter(validator, input, (Class<UICommand>) beanType);
+      UIValidationAdapter adapter = new UIValidationAdapter(validator, input, beanType);
       input.addValidator(adapter);
    }
 }
