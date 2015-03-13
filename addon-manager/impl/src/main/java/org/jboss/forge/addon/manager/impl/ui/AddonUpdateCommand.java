@@ -26,13 +26,14 @@ import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
 import org.jboss.forge.addon.ui.validate.UIValidator;
 import org.jboss.forge.furnace.Furnace;
+import org.jboss.forge.furnace.addons.Addon;
 import org.jboss.forge.furnace.addons.AddonId;
 import org.jboss.forge.furnace.manager.AddonManager;
 import org.jboss.forge.furnace.manager.spi.AddonDependencyResolver;
+import org.jboss.forge.furnace.manager.spi.Response;
 
-public class AddonInstallCommand extends AbstractUICommand implements AddonCommandConstants
+public class AddonUpdateCommand extends AbstractUICommand implements AddonCommandConstants
 {
-
    @Inject
    private AddonManager addonManager;
 
@@ -40,7 +41,7 @@ public class AddonInstallCommand extends AbstractUICommand implements AddonComma
    private AddonDependencyResolver resolver;
 
    @Inject
-   @WithAttributes(label = "Coordinate", description = "The addon's \"groupId:artifactId,version\" coordinate", note = "The addon's \"groupId:artifactId,version\" coordinate", required = true)
+   @WithAttributes(label = "Coordinate", description = "The addon's \"groupId:artifactId,version\" coordinate", required = true)
    private UIInput<String> coordinate;
 
    @Inject
@@ -54,8 +55,8 @@ public class AddonInstallCommand extends AbstractUICommand implements AddonComma
    {
       boolean gui = context.getProvider().isGUI();
       return Metadata.from(super.getMetadata(context), getClass())
-               .name(gui ? ADDON_INSTALL_COMMAND_NAME : ADDON_INSTALL_COMMAND_NAME_NO_GUI)
-               .description(ADDON_INSTALL_COMMAND_DESCRIPTION)
+               .name(gui ? ADDON_UPDATE_COMMAND_NAME : ADDON_UPDATE_COMMAND_NAME_NO_GUI)
+               .description(ADDON_UPDATE_COMMAND_DESCRIPTION)
                .category(Categories.create(ADDON_MANAGER_CATEGORIES));
    }
 
@@ -77,7 +78,10 @@ public class AddonInstallCommand extends AbstractUICommand implements AddonComma
          public Iterable<String> getCompletionProposals(UIContext context, InputComponent<?, String> input, String value)
          {
             Set<String> items = new TreeSet<String>();
-            items.add("org.jboss.forge.addon:");
+            Set<Addon> addons = furnace.getAddonRegistry().getAddons();
+            for(Addon addon : addons) {
+               items.add(addon.getId().toCoordinates());
+            }
             return items;
          }
       });
@@ -90,7 +94,19 @@ public class AddonInstallCommand extends AbstractUICommand implements AddonComma
             String coordinate = (String) context.getCurrentInputComponent().getValue();
             try
             {
-               CoordinateUtils.resolveCoordinate(coordinate,furnace.getVersion(),resolver);
+               AddonId addonId = CoordinateUtils.resolveCoordinate(coordinate,furnace.getVersion(),resolver);
+               Set<Addon> addons = furnace.getAddonRegistry().getAddons();
+               boolean match =false;
+               for(Addon addon : addons) {
+                  if(addon.getId().equals(addonId)) {
+                     match=true;
+                     break;
+                  }
+               }
+               if(!match) {
+                  context.addValidationError(context.getCurrentInputComponent(), "\"" + coordinate
+                           + "\" does not refer to any installed Addon coordinate");
+               }
             }
             catch (IllegalArgumentException e)
             {
@@ -107,16 +123,24 @@ public class AddonInstallCommand extends AbstractUICommand implements AddonComma
    public Result execute(UIExecutionContext context)
    {
       AddonId addonId = CoordinateUtils.resolveCoordinate(coordinate.getValue(),furnace.getVersion(),resolver);
+      AddonId maxAddonId = addonId;
       try
       {
-         addonManager.install(addonId).perform();
-         return Results.success("Addon " + addonId.toCoordinates() + " was installed successfully.");
+         Response<AddonId[]> resolveVersions = resolver.resolveVersions(addonId.getName());
+         
+         for(AddonId id : resolveVersions.get()) {
+             if(id.getVersion().compareTo(maxAddonId.getVersion()) > 0 ) {
+                maxAddonId = id;
+             }
+         }
+         addonManager.install(maxAddonId).perform();
+         return Results.success("Addon " + maxAddonId.toCoordinates() + " was installed successfully.");
       }
       catch (Throwable t)
       {
-         return Results.fail("Addon " + addonId.toCoordinates() + " could not be installed.", t);
+         return Results.fail("Addon " + maxAddonId.toCoordinates() + " could not be installed.", t);
       }
    }
 
-  
+ 
 }
